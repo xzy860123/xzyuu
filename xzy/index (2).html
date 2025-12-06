@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>快乐课堂随机点名系统 - 深色数据看板版</title>
+  <!-- Tailwind CSS v3 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <!-- 统一的 Tailwind 配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#3B82F6',
+            secondary: '#10B981',
+            accent: '#8B5CF6',
+            warning: '#F59E0B',
+            danger: '#EF4444',
+            dark: {
+              100: '#1E293B',
+              200: '#0F172A',
+              300: '#0B1120',
+              400: '#070D19'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'float': 'float 3s ease-in-out infinite',
+            'shine': 'shine 2s infinite',
+            'bounce-slow': 'bounce 2s infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-10px)' },
+            },
+            shine: {
+              '0%, 100%': { opacity: 1 },
+              '50%': { opacity: 0.5 },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .text-shadow {
+        text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+      }
+      .text-shadow-lg {
+        text-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+      }
+      .border-glow {
+        box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+      }
+      .border-glow-lg {
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.8);
+      }
+      .bg-grid {
+        background-image: linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+                          linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+        background-size: 20px 20px;
+      }
+      .bg-gradient-blue {
+        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+      }
+      .bg-card {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(10px);
+      }
+      .clip-path-slant {
+        clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1rem), 0 100%);
+      }
+      .name-animation {
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .name-animation:hover {
+        transform: scale(1.05);
+      }
+      .particle {
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+        opacity: 0.7;
+      }
+      .confetti {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        opacity: 0;
+        animation: confetti-fall 3s ease-in-out forwards;
+      }
+      @keyframes confetti-fall {
+        0% {
+          transform: translateY(-100px) rotate(0deg);
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(500px) rotate(720deg);
+          opacity: 0;
+        }
+      }
+      .heart {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background-color: #EF4444;
+        transform: rotate(45deg);
+        animation: heart-float 3s ease-in-out forwards;
+      }
+      .heart:before,
+      .heart:after {
+        content: '';
+        width: 20px;
+        height: 20px;
+        background-color: #EF4444;
+        border-radius: 50%;
+        position: absolute;
+      }
+      .heart:before {
+        top: -10px;
+        left: 0;
+      }
+      .heart:after {
+        top: 0;
+        left: -10px;
+      }
+      @keyframes heart-float {
+        0% {
+          transform: translateY(500px) rotate(45deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-100px) rotate(45deg);
+          opacity: 0;
+        }
+      }
+    }
+  </style>
+</head>
+<body class="bg-dark-400 text-gray-200 min-h-screen">
+  <!-- 粒子背景容器 -->
+  <div id="particles-container" class="fixed inset-0 z-0"></div>
+  
+  <!-- 网格背景 -->
+  <div class="fixed inset-0 z-0 bg-grid opacity-20"></div>
+  
+  <!-- 主容器 -->
+  <div class="relative z-10 container mx-auto px-4 py-6">
+    <!-- 顶部导航栏 -->
+    <header class="mb-8">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center">
+          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mr-3 shadow-lg shadow-blue-500/20">
+            <i class="fa fa-random text-white text-xl"></i>
+          </div>
+          <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+            快乐课堂随机点名系统
+          </h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <button id="settings-btn" class="p-2 rounded-lg bg-dark-100 hover:bg-dark-200 transition-all duration-300 border border-gray-700 hover:border-blue-500">
+            <i class="fa fa-cog text-gray-400 hover:text-blue-400"></i>
+          </button>
+          <button id="theme-toggle" class="p-2 rounded-lg bg-dark-100 hover:bg-dark-200 transition-all duration-300 border border-gray-700 hover:border-blue-500">
+            <i class="fa fa-moon-o text-gray-400 hover:text-blue-400"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+    
+    <!-- 主要内容区域 -->
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- 左侧面板：名单导入 -->
+      <div class="bg-card rounded-lg border border-gray-700 p-6 shadow-lg">
+        <div class="flex items-center mb-4">
+          <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center mr-3">
+            <i class="fa fa-upload text-blue-400"></i>
+          </div>
+          <h2 class="text-xl font-semibold text-white">名单导入</h2>
+        </div>
+        
+        <div id="drop-area" class="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition-all duration-300">
+          <div class="flex flex-col items-center justify-center">
+            <i class="fa fa-file-excel-o text-4xl text-gray-400 mb-3"></i>
+            <p class="text-gray-300 mb-2">拖拽 Excel 文件到此处</p>
+            <p class="text-gray-500 text-sm mb-4">或</p>
+            <label class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-all duration-300">
+              选择文件
+              <input type="file" id="file-input" accept=".xlsx" class="hidden">
+            </label>
+          </div>
+        </div>
+        
+        <div id="file-info" class="mt-4 hidden">
+          <div class="flex items-center justify-between p-3 bg-dark-100 rounded-lg">
+            <div class="flex items-center">
+              <i class="fa fa-file-excel-o text-green-500 mr-2"></i>
+              <span id="file-name" class="text-gray-300 truncate">文件名.xlsx</span>
+            </div>
+            <button id="remove-file" class="text-gray-400 hover:text-red-500">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          
+          <div id="column-selector" class="mt-4 hidden">
+            <p class="text-gray-400 text-sm mb-2">请选择包含学生姓名的列：</p>
+            <select id="column-select" class="w-full p-2 bg-dark-100 border border-gray-700 rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
+              <!-- 列选项将通过 JavaScript 动态添加 -->
+            </select>
+          </div>
+        </div>
+        
+        <div class="mt-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-gray-300 font-medium">班级统计</h3>
+            <span id="student-count" class="text-blue-400 font-bold">0</span>
+          </div>
+          <div class="w-full bg-dark-100 rounded-full h-2.5">
+            <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+          </div>
+          <div class="flex justify-between mt-1 text-xs text-gray-500">
+            <span>已导入</span>
+            <span>总人数</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 中间面板：随机点名 -->
+      <div class="lg:col-span-2">
+        <div class="bg-card rounded-lg border border-gray-700 p-6 shadow-lg mb-6">
+          <div class="flex items-center mb-6">
+            <div class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center mr-3">
+              <i class="fa fa-random text-purple-400"></i>
+            </div>
+            <h2 class="text-xl font-semibold text-white">随机点名</h2>
+          </div>
+          
+          <div id="name-display-container" class="relative">
+            <div id="name-display" class="flex flex-col items-center justify-center p-10 bg-dark-100 rounded-lg border border-gray-700 min-h-[200px]">
+              <div id="name-placeholder" class="text-center">
+                <i class="fa fa-users text-gray-600 text-4xl mb-3"></i>
+                <p class="text-gray-500">请先导入学生名单</p>
+              </div>
+              
+              <div id="name-animation-container" class="hidden relative w-full text-center">
+                <h3 id="selected-name" class="text-5xl font-bold text-white text-shadow-lg name-animation"></h3>
+                <div id="name-highlight" class="absolute -inset-2 border-2 border-blue-500 rounded-lg opacity-0"></div>
+              </div>
+            </div>
+            
+            <!-- 动画效果容器 -->
+            <div id="animation-container" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+          </div>
+          
+          <div class="flex justify-center space-x-4 mt-6">
+            <button id="start-btn" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all duration-300 flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
+              <i class="fa fa-play mr-2"></i> 开始
+            </button>
+            <button id="stop-btn" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all duration-300 flex items-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              <i class="fa fa-stop mr-2"></i> 停止
+            </button>
+          </div>
+        </div>
+        
+        <!-- 结果反馈面板 -->
+        <div id="feedback-panel" class="bg-card rounded-lg border border-gray-700 p-6 shadow-lg mb-6 hidden">
+          <div class="flex items-center mb-4">
+            <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center mr-3">
+              <i class="fa fa-comments text-blue-400"></i>
+            </div>
+            <h2 class="text-xl font-semibold text-white">结果反馈</h2>
+          </div>
+          
+          <div class="flex justify-center space-x-4">
+            <button id="correct-btn" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all duration-300 flex items-center">
+              <i class="fa fa-check-circle mr-2"></i> 回答正确
+            </button>
+            <button id="try-again-btn" class="px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-all duration-300 flex items-center">
+              <i class="fa fa-exclamation-circle mr-2"></i> 需要努力
+            </button>
+          </div>
+        </div>
+        
+        <!-- 历史记录面板 -->
+        <div class="bg-card rounded-lg border border-gray-700 p-6 shadow-lg">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+              <div class="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center mr-3">
+                <i class="fa fa-history text-amber-400"></i>
+              </div>
+              <h2 class="text-xl font-semibold text-white">今日英雄榜</h2>
+            </div>
+            <span id="history-count" class="px-2 py-1 bg-amber-500/20 text-amber-400 rounded-full text-xs">0</span>
+          </div>
+          
+          <div id="history-list" class="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+            <div class="text-center text-gray-500 py-8">
+              <i class="fa fa-list-alt text-3xl mb-3"></i>
+              <p>暂无记录</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    
+    <!-- 底部信息栏 -->
+    <footer class="mt-8 text-center text-gray-500 text-sm">
+      <p>© 2025 快乐课堂随机点名系统 | 数据仅保存在当前浏览器中</p>
+    </footer>
+  </div>
+  
+  <!-- 弹窗：鼓励信息 -->
+  <div id="feedback-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+    <div class="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"></div>
+    <div class="relative bg-dark-100 rounded-lg border border-gray-700 p-6 max-w-md w-full mx-4 transform transition-all duration-300 scale-95 opacity-0" id="modal-content">
+      <div class="text-center">
+        <div id="modal-icon" class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center">
+          <!-- 图标将通过 JavaScript 动态添加 -->
+        </div>
+        <h3 id="modal-title" class="text-xl font-bold text-white mb-2">太棒了！</h3>
+        <p id="modal-message" class="text-gray-300 mb-6">你真是个小天才！</p>
+        <button id="modal-close" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-300">
+          确定
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 弹窗：设置 -->
+  <div id="settings-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+    <div class="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"></div>
+    <div class="relative bg-dark-100 rounded-lg border border-gray-700 p-6 max-w-md w-full mx-4 transform transition-all duration-300 scale-95 opacity-0" id="settings-modal-content">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold text-white">系统设置</h3>
+        <button id="settings-modal-close" class="text-gray-400 hover:text-white">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <h4 class="text-gray-300 font-medium mb-2">表扬语录</h4>
+          <textarea id="praise-quotes" class="w-full p-3 bg-dark-200 border border-gray-700 rounded-lg text-gray-300 focus:outline-none focus:border-blue-500 h-32" placeholder="每行一条表扬语录，用换行分隔"></textarea>
+        </div>
+        
+        <div>
+          <h4 class="text-gray-300 font-medium mb-2">鼓励语录</h4>
+          <textarea id="encourage-quotes" class="w-full p-3 bg-dark-200 border border-gray-700 rounded-lg text-gray-300 focus:outline-none focus:border-blue-500 h-32" placeholder="每行一条鼓励语录，用换行分隔"></textarea>
+        </div>
+        
+        <div class="flex justify-end">
+          <button id="save-settings" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-300">
+            保存设置
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 提示消息 -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+  
+  <script>
+    // 全局变量
+    let studentList = [];
+    let remainingStudents = [];
+    let selectedStudent = null;
+    let isRolling = false;
+    let rollInterval = null;
+    let rollSpeed = 100; // 初始滚动速度（毫秒）
+    let praiseQuotes = [
+      "太棒了！",
+      "你真是个小天才！",
+      "回答得非常精彩！",
+      "真不错，继续保持！",
+      "你的表现令人印象深刻！",
+      "好样的！",
+      "聪明的孩子！",
+      "你真聪明！",
+      "完美的回答！",
+      "你是我们班的骄傲！"
+    ];
+    let encourageQuotes = [
+      "没关系，下次一定可以的！",
+      "别灰心，继续努力！",
+      "加油，你能做到的！",
+      "再试一次，你会进步的！",
+      "失败是成功之母！",
+      "不要放弃，继续尝试！",
+      "你已经很接近了！",
+      "相信自己，你能行！",
+      "每一次尝试都是进步！",
+      "继续努力，未来可期！"
+    ];
+    let historyRecords = [];
+    
+    // DOM 元素
+    const fileInput = document.getElementById('file-input');
+    const dropArea = document.getElementById('drop-area');
+    const fileInfo = document.getElementById('file-info');
+    const fileName = document.getElementById('file-name');
+    const removeFile = document.getElementById('remove-file');
+    const columnSelector = document.getElementById('column-selector');
+    const columnSelect = document.getElementById('column-select');
+    const studentCount = document.getElementById('student-count');
+    const progressBar = document.getElementById('progress-bar');
+    const namePlaceholder = document.getElementById('name-placeholder');
+    const nameAnimationContainer = document.getElementById('name-animation-container');
+    const selectedName = document.getElementById('selected-name');
+    const nameHighlight = document.getElementById('name-highlight');
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const feedbackPanel = document.getElementById('feedback-panel');
+    const correctBtn = document.getElementById('correct-btn');
+    const tryAgainBtn = document.getElementById('try-again-btn');
+    const historyList = document.getElementById('history-list');
+    const historyCount = document.getElementById('history-count');
+    const feedbackModal = document.getElementById('feedback-modal');
+    const modalContent = document.getElementById('modal-content');
+    const modalIcon = document.getElementById('modal-icon');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMessage = document.getElementById('modal-message');
+    const modalClose = document.getElementById('modal-close');
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsModal = document.getElementById('settings-modal');
+    const settingsModalContent = document.getElementById('settings-modal-content');
+    const settingsModalClose = document.getElementById('settings-modal-close');
+    const praiseQuotesTextarea = document.getElementById('praise-quotes');
+    const encourageQuotesTextarea = document.getElementById('encourage-quotes');
+    const saveSettings = document.getElementById('save-settings');
+    const themeToggle = document.getElementById('theme-toggle');
+    const animationContainer = document.getElementById('animation-container');
+    const toastContainer = document.getElementById('toast-container');
+    
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      // 初始化粒子背景
+      initParticles();
+      
+      // 从本地存储加载设置
+      loadSettings();
+      
+      // 更新语录文本框
+      updateQuotesTextarea();
+      
+      // 更新历史记录
+      updateHistoryList();
+      
+      // 禁用开始按钮
+      startBtn.disabled = true;
+    });
+    
+    // 初始化粒子背景
+    function initParticles() {
+      const container = document.getElementById('particles-container');
+      const particleCount = 50;
+      
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        
+        // 随机大小
+        const size = Math.random() * 4 + 1;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        
+        // 随机位置
+        particle.style.left = `${Math.random() * 100}%`;
+        particle.style.top = `${Math.random() * 100}%`;
+        
+        // 随机颜色
+        const colors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B'];
+        particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        // 随机动画延迟
+        const delay = Math.random() * 10;
+        particle.style.animation = `float ${Math.random() * 10 + 10}s ease-in-out ${delay}s infinite`;
+        
+        container.appendChild(particle);
+      }
+    }
+    
+    // 显示提示消息
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = 'flex items-center p-3 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full opacity-0';
+      
+      let icon, bgColor;
+      switch (type) {
+        case 'success':
+          icon = 'fa-check-circle';
+          bgColor = 'bg-green-500';
+          break;
+        case 'error':
+          icon = 'fa-exclamation-circle';
+          bgColor = 'bg-red-500';
+          break;
+        case 'warning':
+          icon = 'fa-exclamation-triangle';
+          bgColor = 'bg-yellow-500';
+          break;
+        default:
+          icon = 'fa-info-circle';
+          bgColor = 'bg-blue-500';
+      }
+      
+      toast.classList.add(bgColor);
+      
+      toast.innerHTML = `
+        <i class="fa ${icon} mr-2"></i>
+        <span>${message}</span>
+      `;
+      
+      toastContainer.appendChild(toast);
+      
+      // 显示动画
+      setTimeout(() => {
+        toast.classList.remove('translate-x-full', 'opacity-0');
+      }, 10);
+      
+      // 自动隐藏
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-x-full');
+        setTimeout(() => {
+          toastContainer.removeChild(toast);
+        }, 300);
+      }, 3000);
+    }
+    
+    // 文件拖放处理
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+      dropArea.classList.add('border-blue-500', 'bg-blue-500/5');
+    }
+    
+    function unhighlight() {
+      dropArea.classList.remove('border-blue-500', 'bg-blue-500/5');
+    }
+    
+    dropArea.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      
+      if (files.length > 0) {
+        handleFile(files[0]);
+      }
+    }
+    
+    // 文件选择处理
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length > 0) {
+        handleFile(fileInput.files[0]);
+      }
+    });
+    
+    // 处理文件
+    function handleFile(file) {
+      // 检查文件类型
+      if (file.type !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+        showToast('请上传 .xlsx 格式的 Excel 文件', 'error');
+        return;
+      }
+      
+      // 显示文件信息
+      fileName.textContent = file.name;
+      fileInfo.classList.remove('hidden');
+      columnSelector.classList.add('hidden');
+      
+      // 模拟读取文件（实际项目中应使用 SheetJS 等库解析 Excel）
+      simulateFileProcessing(file);
+    }
+    
+    // 模拟文件处理（实际项目中应替换为真实的 Excel 解析）
+    function simulateFileProcessing(file) {
+      showToast('正在处理文件...', 'info');
+      
+      // 模拟处理延迟
+      setTimeout(() => {
+        // 模拟列数据
+        const columns = ['姓名', '学号', '性别', '年龄'];
+        columnSelect.innerHTML = '';
+        
+        columns.forEach((col, index) => {
+          const option = document.createElement('option');
+          option.value = index;
+          option.textContent = col;
+          columnSelect.appendChild(option);
+        });
+        
+        columnSelector.classList.remove('hidden');
+        showToast('文件处理完成', 'success');
+      }, 1500);
+    }
+    
+    // 移除文件
+    removeFile.addEventListener('click', () => {
+      fileInput.value = '';
+      fileInfo.classList.add('hidden');
+      columnSelector.classList.add('hidden');
+      namePlaceholder.classList.remove('hidden');
+      nameAnimationContainer.classList.add('hidden');
+      feedbackPanel.classList.add('hidden');
+      startBtn.disabled = true;
+      studentList = [];
+      remainingStudents = [];
+      updateStudentCount();
+    });
+    
+    // 列选择变化
+    columnSelect.addEventListener('change', () => {
+      // 模拟加载学生数据
+      simulateLoadingStudents();
+    });
+    
+    // 模拟加载学生数据
+    function simulateLoadingStudents() {
+      showToast('正在加载学生数据...', 'info');
+      
+      // 模拟学生数据
+      const mockStudents = [
+        '张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十',
+        '郑一', '王二', '陈三', '刘四', '林五', '黄六', '赵七', '孙八',
+        '周九', '吴十', '郑十一', '王十二', '陈十三', '刘十四', '林十五', '黄十六'
+      ];
+      
+      studentList = [...mockStudents];
+      remainingStudents = [...mockStudents];
+      
+      // 模拟进度条
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 5;
+        progressBar.style.width = `${progress}%`;
+        
+        if (progress >= 100) {
+          clearInterval(interval);
+          updateStudentCount();
+          showToast(`成功加载 ${studentList.length} 名学生`, 'success');
+          startBtn.disabled = false;
+        }
+      }, 50);
+    }
+    
+    // 更新学生计数
+    function updateStudentCount() {
+      studentCount.textContent = studentList.length;
+      progressBar.style.width = '100%';
+    }
+    
+    // 开始点名
+    startBtn.addEventListener('click', () => {
+      if (remainingStudents.length === 0) {
+        // 重置名单
+        remainingStudents = [...studentList];
+        showToast('已重置名单，开始新一轮点名', 'info');
+      }
+      
+      isRolling = true;
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      feedbackPanel.classList.add('hidden');
+      
+      // 隐藏占位符，显示动画容器
+      namePlaceholder.classList.add('hidden');
+      nameAnimationContainer.classList.remove('hidden');
+      
+      // 开始滚动名字
+      let lastIndex = -1;
+      rollInterval = setInterval(() => {
+        // 确保不连续显示同一个名字
+        let randomIndex;
+        do {
+          randomIndex = Math.floor(Math.random() * remainingStudents.length);
+        } while (randomIndex === lastIndex && remainingStudents.length > 1);
+        
+        lastIndex = randomIndex;
+        selectedName.textContent = remainingStudents[randomIndex];
+        
+        // 添加轻微的缩放动画
+        selectedName.classList.add('scale-110');
+        setTimeout(() => {
+          selectedName.classList.remove('scale-110');
+        }, 50);
+      }, rollSpeed);
+    });
+    
+    // 停止点名
+    stopBtn.addEventListener('click', () => {
+      isRolling = false;
+      clearInterval(rollInterval);
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      
+      // 随机选择一名学生
+      const randomIndex = Math.floor(Math.random() * remainingStudents.length);
+      selectedStudent = remainingStudents[randomIndex];
+      
+      // 显示选中的名字
+      selectedName.textContent = selectedStudent;
+      
+      // 添加高亮动画
+      nameHighlight.classList.add('opacity-100', 'border-glow-lg');
+      selectedName.classList.add('text-shadow-lg');
+      
+      // 从剩余名单中移除
+      remainingStudents.splice(randomIndex, 1);
+      
+      // 显示反馈面板
+      setTimeout(() => {
+        feedbackPanel.classList.remove('hidden');
+      }, 500);
+    });
+    
+    // 回答正确
+    correctBtn.addEventListener('click', () => {
+      // 记录历史
+      addHistoryRecord(selectedStudent, 'correct');
+      
+      // 显示成功弹窗
+      showFeedbackModal('correct');
+      
+      // 播放庆祝动画
+      createConfetti();
+    });
+    
+    // 需要努力
+    tryAgainBtn.addEventListener('click', () => {
+      // 记录历史
+      addHistoryRecord(selectedStudent, 'try-again');
+      
+      // 显示鼓励弹窗
+      showFeedbackModal('try-again');
+      
+      // 播放鼓励动画
+      createHearts();
+    });
+    
+    // 添加历史记录
+    function addHistoryRecord(student, result) {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString();
+      
+      const record = {
+        student,
+        result,
+        time: timeString,
+        timestamp: now.getTime()
+      };
+      
+      historyRecords.unshift(record);
+      updateHistoryList();
+    }
+    
+    // 更新历史记录列表
+    function updateHistoryList() {
+      historyCount.textContent = historyRecords.length;
+      
+      if (historyRecords.length === 0) {
+        historyList.innerHTML = `
+          <div class="text-center text-gray-500 py-8">
+            <i class="fa fa-list-alt text-3xl mb-3"></i>
+            <p>暂无记录</p>
+          </div>
+        `;
+        return;
+      }
+      
+      historyList.innerHTML = historyRecords.map((record, index) => {
+        const isLatest = index === 0;
+        const resultClass = record.result === 'correct' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400';
+        const resultIcon = record.result === 'correct' ? 'fa-check-circle' : 'fa-exclamation-circle';
+        const resultText = record.result === 'correct' ? '回答正确' : '需要努力';
+        
+        return `
+          <div class="flex items-center justify-between p-3 bg-dark-100 rounded-lg ${isLatest ? 'border-l-4 border-blue-500' : ''}">
+            <div class="flex items-center">
+              <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center mr-3">
+                <span class="text-blue-400 font-medium">${record.student.charAt(0)}</span>
+              </div>
+              <div>
+                <p class="text-white font-medium">${record.student}</p>
+                <p class="text-gray-500 text-xs">${record.time}</p>
+              </div>
+            </div>
+            <div class="flex items-center">
+              <span class="px-2 py-1 rounded-full text-xs ${resultClass} flex items-center">
+                <i class="fa ${resultIcon} mr-1"></i> ${resultText}
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    // 显示反馈弹窗
+    function showFeedbackModal(type) {
+      feedbackModal.classList.remove('hidden');
+      
+      setTimeout(() => {
+        modalContent.classList.remove('scale-95', 'opacity-0');
+        modalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+      
+      if (type === 'correct') {
+        modalIcon.className = 'w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center bg-green-500/20';
+        modalIcon.innerHTML = '<i class="fa fa-trophy text-green-500 text-3xl"></i>';
+        modalTitle.textContent = '太棒了！';
+        modalTitle.className = 'text-xl font-bold text-green-500 mb-2';
+        
+        // 随机选择一条表扬语录
+        const randomQuote = praiseQuotes[Math.floor(Math.random() * praiseQuotes.length)];
+        modalMessage.textContent = randomQuote;
+      } else {
+        modalIcon.className = 'w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center bg-yellow-500/20';
+        modalIcon.innerHTML = '<i class="fa fa-star text-yellow-500 text-3xl"></i>';
+        modalTitle.textContent = '继续努力！';
+        modalTitle.className = 'text-xl font-bold text-yellow-500 mb-2';
+        
+        // 随机选择一条鼓励语录
+        const randomQuote = encourageQuotes[Math.floor(Math.random() * encourageQuotes.length)];
+        modalMessage.textContent = randomQuote;
+      }
+    }
+    
+    // 关闭反馈弹窗
+    modalClose.addEventListener('click', () => {
+      modalContent.classList.remove('scale-100', 'opacity-100');
+      modalContent.classList.add('scale-95', 'opacity-0');
+      
+      setTimeout(() => {
+        feedbackModal.classList.add('hidden');
+      }, 300);
+    });
+    
+    // 创建庆祝动画（五彩纸屑）
+    function createConfetti() {
+      animationContainer.innerHTML = '';
+      
+      const colors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
+      
+      for (let i = 0; i < 100; i++) {
+        const confetti = document.createElement('div');
+        confetti.classList.add('confetti');
+        
+        // 随机颜色
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        // 随机位置
+        confetti.style.left = `${Math.random() * 100}%`;
+        
+        // 随机动画延迟
+        confetti.style.animationDelay = `${Math.random() * 2}s`;
+        
+        // 随机大小
+        const size = Math.random() * 8 + 6;
+        confetti.style.width = `${size}px`;
+        confetti.style.height = `${size}px`;
+        
+        animationContainer.appendChild(confetti);
+      }
+    }
+    
+    // 创建鼓励动画（爱心）
+    function createHearts() {
+      animationContainer.innerHTML = '';
+      
+      for (let i = 0; i < 15; i++) {
+        const heart = document.createElement('div');
+        heart.classList.add('heart');
+        
+        // 随机位置
+        heart.style.left = `${Math.random() * 100}%`;
+        
+        // 随机动画延迟
+        heart.style.animationDelay = `${Math.random() * 2}s`;
+        
+        // 随机大小
+        const size = Math.random() * 10 + 15;
+        heart.style.width = `${size}px`;
+        heart.style.height = `${size}px`;
+        
+        // 随机颜色
+        const colors = ['#EF4444', '#F87171', '#EC4899', '#BE185D'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        heart.style.backgroundColor = color;
+        heart.querySelector('before') && (heart.querySelector('before').style.backgroundColor = color);
+        heart.querySelector('after') && (heart.querySelector('after').style.backgroundColor = color);
+        
+        animationContainer.appendChild(heart);
+      }
+    }
+    
+    // 打开设置弹窗
+    settingsBtn.addEventListener('click', () => {
+      settingsModal.classList.remove('hidden');
+      
+      setTimeout(() => {
+        settingsModalContent.classList.remove('scale-95', 'opacity-0');
+        settingsModalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    });
+    
+    // 关闭设置弹窗
+    settingsModalClose.addEventListener('click', () => {
+      settingsModalContent.classList.remove('scale-100', 'opacity-100');
+      settingsModalContent.classList.add('scale-95', 'opacity-0');
+      
+      setTimeout(() => {
+        settingsModal.classList.add('hidden');
+      }, 300);
+    });
+    
+    // 更新语录文本框
+    function updateQuotesTextarea() {
+      praiseQuotesTextarea.value = praiseQuotes.join('\n');
+      encourageQuotesTextarea.value = encourageQuotes.join('\n');
+    }
+    
+    // 保存设置
+    saveSettings.addEventListener('click', () => {
+      // 获取文本框内容并分割成行
+      const newPraiseQuotes = praiseQuotesTextarea.value.split('\n').filter(line => line.trim() !== '');
+      const newEncourageQuotes = encourageQuotesTextarea.value.split('\n').filter(line => line.trim() !== '');
+      
+      // 验证输入
+      if (newPraiseQuotes.length === 0) {
+        showToast('表扬语录不能为空', 'error');
+        return;
+      }
+      
+      if (newEncourageQuotes.length === 0) {
+        showToast('鼓励语录不能为空', 'error');
+        return;
+      }
+      
+      // 更新语录
+      praiseQuotes = newPraiseQuotes;
+      encourageQuotes = newEncourageQuotes;
+      
+      // 保存到本地存储
+      saveSettingsToLocalStorage();
+      
+      // 关闭弹窗
+      settingsModalContent.classList.remove('scale-100', 'opacity-100');
+      settingsModalContent.classList.add('scale-95', 'opacity-0');
+      
+      setTimeout(() => {
+        settingsModal.classList.add('hidden');
+        showToast('设置已保存', 'success');
+      }, 300);
+    });
+    
+    // 保存设置到本地存储
+    function saveSettingsToLocalStorage() {
+      try {
+        localStorage.setItem('praiseQuotes', JSON.stringify(praiseQuotes));
+        localStorage.setItem('encourageQuotes', JSON.stringify(encourageQuotes));
+      } catch (error) {
+        console.error('保存设置失败:', error);
+      }
+    }
+    
+    // 从本地存储加载设置
+    function loadSettings() {
+      try {
+        const savedPraiseQuotes = localStorage.getItem('praiseQuotes');
+        const savedEncourageQuotes = localStorage.getItem('encourageQuotes');
+        
+        if (savedPraiseQuotes) {
+          praiseQuotes = JSON.parse(savedPraiseQuotes);
+        }
+        
+        if (savedEncourageQuotes) {
+          encourageQuotes = JSON.parse(savedEncourageQuotes);
+        }
+      } catch (error) {
+        console.error('加载设置失败:', error);
+      }
+    }
+    
+    // 主题切换（当前版本只有深色主题，此功能预留）
+    themeToggle.addEventListener('click', () => {
+      showToast('当前已为深色模式', 'info');
+    });
+  </script>
+</body>
+</html>
